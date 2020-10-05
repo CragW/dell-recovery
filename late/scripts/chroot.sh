@@ -140,7 +140,10 @@ if [ -d /dell/fist ] && ! grep "^GRUB_DISABLE_OS_PROBER" $TARGET/etc/default/gru
 fi
 
 # zfs: create dataset for new created user and root, run if zfs in use
-chroot $TARGET findmnt -M / -t zfs > /dev/null && . /usr/share/dell/scripts/zfs_finalize.sh
+if chroot $TARGET findmnt -M / -t zfs > /dev/null; then
+    . /usr/share/dell/scripts/zfs_finalize.sh
+    . /usr/share/dell/scripts/zfs_encrypt_home.sh
+fi
 
 #Run chroot scripts
 chroot $TARGET /usr/share/dell/scripts/target_chroot.sh
