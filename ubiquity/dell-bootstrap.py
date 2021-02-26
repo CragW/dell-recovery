@@ -59,6 +59,7 @@ EFI_SWAP_PARTITION      =     '4'
 
 #Continually Reused ubiquity templates
 RECOVERY_TYPE_QUESTION =  'dell-recovery/recovery_type'
+QUESTION_ENCRYPTION = 'dell-recovery/encryption'
 
 no_options = GLib.Variant('a{sv}', {})
 
@@ -440,6 +441,16 @@ class Page(Plugin):
             # Only delete the swap partitions on the target
             if device.startswith(self.device):
                 part.call_delete_sync(no_options)
+
+    def encryption_partitioner(self):
+        if self.db.get(QUESTION_ENCRYPTION).lower() != "true":
+            return self.log("I: encryption skipped")
+        try:
+            self.log("I: %s is set, let's do encryption layout" % QUESTION_ENCRYPTION)
+            return misc.execute_root("/usr/share/dell/scripts/encryption_partitioner.sh",
+                                        self.device)
+        except Exception as err:
+            return self.log('disk encryption failed, the error is %s'%str(err))
 
     def sleep_network(self):
         """Requests the network be disabled for the duration of install to
@@ -896,6 +907,14 @@ class Page(Plugin):
         rec_type = self.ui.get_type()
         self.log("recovery type set to '%s'" % rec_type)
         self.preseed(RECOVERY_TYPE_QUESTION, rec_type)
+
+        if self.db.get(QUESTION_ENCRYPTION) == 'true':
+            self.preseed_config += ("%s=true\n" % QUESTION_ENCRYPTION)
+            self.log("encryption selected")
+        else:
+            self.preseed_config = self.preseed_config.replace(("%s=true" % QUESTION_ENCRYPTION), '')
+            self.log("encryption deselected")
+
         (device, size) = self.ui.get_selected_device()
         if device:
             self.device = device
@@ -970,6 +989,7 @@ class Page(Plugin):
                 self.delete_swap()
                 self.remove_extra_partitions()
                 self.explode_sdr()
+                self.encryption_partitioner()
         except Exception as err:
             #For interactive types of installs show an error then reboot
             #Otherwise, just reboot the system

@@ -8,6 +8,11 @@ Type: boolean
 Default: false
 Description: for internal use; determines if EFI enabled dual boot enabled
 
+Template: dell-recovery/encryption
+Type: boolean
+Default: true
+Description: for internal use; determines whether to encrypt the disk
+
 Template: dell-recovery/os_partition
 Type: string
 Default: 
