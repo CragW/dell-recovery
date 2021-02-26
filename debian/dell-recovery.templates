@@ -13,6 +13,11 @@ Type: boolean
 Default: false
 Description: determines whether to use ZFS filesystem
 
+Template: dell-recovery/encryption
+Type: boolean
+Default: false
+Description: for internal use; determines whether to encrypt the disk
+
 Template: dell-recovery/os_partition
 Type: string
 Default: 

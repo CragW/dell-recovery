@@ -62,6 +62,7 @@ ZFS_OS_PARTITION        =     '4'
 #Continually Reused ubiquity templates
 RECOVERY_TYPE_QUESTION =  'dell-recovery/recovery_type'
 QUESTION_USE_ZFS = 'dell-recovery/use_zfs'
+QUESTION_ENCRYPTION = 'dell-recovery/encryption'
 
 no_options = GLib.Variant('a{sv}', {})
 
@@ -485,6 +486,16 @@ class Page(Plugin):
         if self.device[-1].isnumeric():
             return 'p' + numPart
         return numPart
+
+    def encryption_partitioner(self):
+        if self.db.get(QUESTION_ENCRYPTION).lower() != "true":
+            return self.log("I: encryption skipped")
+        try:
+            self.log("I: %s is set, let's do encryption layout" % QUESTION_ENCRYPTION)
+            return misc.execute_root("/usr/share/dell/scripts/encryption_partitioner.sh",
+                                        self.device)
+        except Exception as err:
+            return self.log('disk encryption failed, the error is %s'%str(err))
 
     def zfs_partitioner(self):
         if self.db.get(QUESTION_USE_ZFS).lower() != "true":
@@ -1032,6 +1043,13 @@ class Page(Plugin):
         self.log("recovery type set to '%s'" % rec_type)
         self.preseed(RECOVERY_TYPE_QUESTION, rec_type)
 
+        if self.db.get(QUESTION_ENCRYPTION) == 'true':
+            self.preseed_config += ("%s=true\n" % QUESTION_ENCRYPTION)
+            self.log("encryption selected")
+        else:
+            self.preseed_config = self.preseed_config.replace(("%s=true" % QUESTION_ENCRYPTION), '')
+            self.log("encryption deselected")
+
         if self.ui.use_zfs_chkbtn.get_active():
             self.preseed_config += ("%s=true\n" % QUESTION_USE_ZFS)
             self.log("zfs is selected by user")
@@ -1114,6 +1132,7 @@ class Page(Plugin):
                 self.delete_swap()
                 self.remove_extra_partitions()
                 self.explode_sdr()
+                self.encryption_partitioner()
                 self.zfs_partitioner()
         except Exception as err:
             #For interactive types of installs show an error then reboot
